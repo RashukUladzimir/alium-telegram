@@ -1,0 +1,3 @@
+token = "5902459858:AAH0M6pjSEcayVr5j5L9oEC_dBEVI93AnR4"
+
+BACKEND_URL = 'http://127.0.0.1:8000/bot/'

@@ -4,7 +4,7 @@ from config import BACKEND_URL
 
 
 def get_user(user_id, tg_username, affiliate=None):
-    request_url = BACKEND_URL + 'get-user/{}/'.format(user_id)
+    request_url = BACKEND_URL + 'clients/{}/'.format(user_id)
     body = {
         'user_id': user_id,
         'tg_username': tg_username,
@@ -40,9 +40,10 @@ def send_proof_request(user_id, task_id, text_proof=None, image_proof=None):
         'client_id': user_id,
         'task_id': task_id,
         'text_answer': text_proof,
-        'image_answer': image_proof,
     }
-    resp = requests.post(request_url, data=body)
+    file = {'image_answer': ('test.jpg', image_proof, 'app/jpg', {'Content-Disposition': 'attachment'})}
+
+    resp = requests.post(request_url, data=body, files=file)
     return resp.ok
 
 
@@ -53,4 +54,16 @@ def send_withdrawal_request(user_id, amount):
         'withdrawal_sum': amount,
     }
     resp = requests.post(request_url, data=body)
+    return resp.ok
+
+
+def update_user(user_id, wallet_id, discord_username):
+    request_url = BACKEND_URL + 'clients/{}/update/'.format(user_id)
+    body = {
+
+        'wallet': wallet_id,
+        'discord_username': discord_username,
+        'welcome_passed': True,
+    }
+    resp = requests.put(request_url, data=body)
     return resp.ok

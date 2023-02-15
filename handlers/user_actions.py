@@ -3,6 +3,7 @@ from io import BytesIO
 from aiogram import Dispatcher, types
 from aiogram.types.message import ContentType
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils.deep_linking import get_start_link, decode_payload
 
@@ -10,6 +11,12 @@ from handlers.consts import GET_USER_TASKS, WITHDRAWAL, WELCOME_MESSAGE, WALLET_
 from handlers.api import get_user, get_tasks, register_task, send_proof_request, send_withdrawal_request, update_user
 
 from handlers.helpers import remove_p_tag, wallet_valid, discord_valid
+
+
+async def add_menu_button():
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    keyboard.add("Menu")
+    return keyboard
 
 
 class UserAction(StatesGroup):
@@ -67,7 +74,7 @@ async def wallet_address_entered(message: types.Message, state: FSMContext):
 
 async def discord_username_entered(message: types.Message, state: FSMContext):
     discord_username = message.text
-    if not wallet_valid(discord_username):
+    if not discord_valid(discord_username):
         await message.answer("Please send me right discord username.")
         return
 
@@ -77,7 +84,7 @@ async def discord_username_entered(message: types.Message, state: FSMContext):
     msg_text = 'You profile is updated'
     if not user_updated:
         msg_text = 'Something went wrong'
-
+    await add_menu_button()
     await message.answer(msg_text, parse_mode='HTML')
     await state.finish()
 
@@ -106,7 +113,8 @@ async def create_withdrawal(message: types.Message, state: FSMContext):
     if not created:
         msg_text = 'Something went wrong'
 
-    await message.answer(msg_text, parse_mode='HTML')
+    kb = await add_menu_button()
+    await message.answer(msg_text, parse_mode='HTML', reply_markup=kb)
     await state.finish()
 
 
@@ -145,13 +153,14 @@ async def send_proof(message: types.Message, state: FSMContext):
     msg_text = 'You proof is accepted'
     if not proof_created:
         msg_text = 'Something went wrong'
-
-    await message.answer(msg_text, parse_mode='HTML')
+    kb = await add_menu_button()
+    await message.answer(msg_text, parse_mode='HTML', reply_markup=kb)
     await state.finish()
 
 
 def register_handlers_user(dp: Dispatcher):
     dp.register_message_handler(user_start, commands="start", state="*")
+    dp.register_message_handler(user_start, Text(equals="menu", ignore_case=True), state="*")
 
     dp.register_message_handler(wallet_address_entered, state=UserAction.waiting_wallet)
     dp.register_message_handler(discord_username_entered, state=UserAction.waiting_discord)

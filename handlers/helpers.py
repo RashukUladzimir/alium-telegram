@@ -13,3 +13,9 @@ def wallet_valid(wallet_id: str):
 def discord_valid(discord_username: str):
     regex = re.compile('^.{3,32}#[0-9]{4}$')
     return re.match(regex, discord_username) is not None
+
+
+def amount_valid(amount: str):
+    re_float = re.compile(r"(^\d+\.\d+$|^\.\d+$)")
+    re_int = re.compile(r"(^[1-9]+\d*$|^0$)")
+    return re.match(re_float, amount) is not None or re.match(re_int, amount) is not None

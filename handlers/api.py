@@ -57,13 +57,14 @@ def send_withdrawal_request(user_id, amount):
     return resp.ok
 
 
-def update_user(user_id, wallet_id, discord_username):
+def update_user(user_id, wallet_id=None, discord_username=None):
     request_url = BACKEND_URL + 'clients/{}/update/'.format(user_id)
     body = {
-
-        'wallet': wallet_id,
-        'discord_username': discord_username,
         'welcome_passed': True,
     }
+    if wallet_id:
+        body.update({'wallet': wallet_id})
+    if discord_username:
+        body.update({'discord_username': discord_username})
     resp = requests.put(request_url, data=body)
     return resp.ok

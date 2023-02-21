@@ -7,10 +7,11 @@ from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.utils.deep_linking import get_start_link, decode_payload
 
-from handlers.consts import GET_USER_TASKS, WITHDRAWAL, WELCOME_MESSAGE, WALLET_MESSAGE, DISCORD_MESSAGE
+from handlers.consts import GET_USER_TASKS, WITHDRAWAL, WELCOME_MESSAGE, WALLET_MESSAGE, DISCORD_MESSAGE, \
+    MAIN_MENU_MESSAGE, CHANGE_WALLET_ADDRESS
 from handlers.api import get_user, get_tasks, register_task, send_proof_request, send_withdrawal_request, update_user
 
-from handlers.helpers import remove_p_tag, wallet_valid, discord_valid
+from handlers.helpers import remove_p_tag, wallet_valid, discord_valid, amount_valid
 
 
 async def add_menu_button():
@@ -25,6 +26,8 @@ class UserAction(StatesGroup):
     waiting_wallet = State()
 
     waiting_discord = State()
+
+    new_wallet_address = State()
 
     select_action = State()
 
@@ -45,18 +48,24 @@ async def user_start(message: types.Message, state: FSMContext):
     user = get_user(user_id=message.from_user.id, tg_username=message.from_user.username, affiliate=affiliate)
 
     if not user.get('welcome_passed'):
+        await message.answer(WELCOME_MESSAGE)
         await message.answer(WALLET_MESSAGE)
         await state.set_state(UserAction.waiting_wallet.state)
 
     else:
-        actions = [GET_USER_TASKS, WITHDRAWAL]
+        actions = [GET_USER_TASKS, CHANGE_WALLET_ADDRESS, WITHDRAWAL]
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
 
         for action in actions:
             keyboard.add(action)
 
         await message.answer(
-            "Select your next action: \n your ref link is {}".format(await get_start_link(message.from_user.id, encode=True)),
+            MAIN_MENU_MESSAGE.format(
+                message.from_user.first_name,
+                user.get('balance'),
+                user.get('referrals'),
+                await get_start_link(message.from_user.id, encode=True)
+            ),
             reply_markup=keyboard,
         )
         await state.set_state(UserAction.user_start.state)
@@ -65,7 +74,7 @@ async def user_start(message: types.Message, state: FSMContext):
 async def wallet_address_entered(message: types.Message, state: FSMContext):
     wallet_id = message.text
     if not wallet_valid(wallet_id):
-        await message.answer("Please send me right wallet.")
+        await message.answer("Please send me correct wallet.")
         return
     await message.answer(DISCORD_MESSAGE)
     await state.update_data(wallet=wallet_id)
@@ -75,7 +84,7 @@ async def wallet_address_entered(message: types.Message, state: FSMContext):
 async def discord_username_entered(message: types.Message, state: FSMContext):
     discord_username = message.text
     if not discord_valid(discord_username):
-        await message.answer("Please send me right discord username.")
+        await message.answer("Please send me correct discord username.")
         return
 
     user_data = await state.get_data()
@@ -84,15 +93,14 @@ async def discord_username_entered(message: types.Message, state: FSMContext):
     msg_text = 'You profile is updated'
     if not user_updated:
         msg_text = 'Something went wrong'
-    await add_menu_button()
-    await message.answer(msg_text, parse_mode='HTML')
-    await state.finish()
+    kb = await add_menu_button()
+    await message.answer(msg_text, parse_mode='HTML', reply_markup=kb)
 
 
 async def select_action(message: types.Message, state: FSMContext):
     action = message.text.lower()
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    if action == GET_USER_TASKS:
+    if action == GET_USER_TASKS.lower():
         tasks = get_tasks(message.from_user.id)
         await state.update_data(tasks=tasks)
         for task in tasks:
@@ -101,13 +109,36 @@ async def select_action(message: types.Message, state: FSMContext):
         await message.answer("Select task:", reply_markup=keyboard)
         await state.set_state(UserAction.get_user_tasks.state)
 
-    elif action == WITHDRAWAL:
+    elif action == WITHDRAWAL.lower():
         await message.answer("Input withdrawal amount:")
         await state.set_state(UserAction.withdrawal_create.state)
+
+    elif action == CHANGE_WALLET_ADDRESS.lower():
+        await message.answer("Input your new wallet address:")
+        await state.set_state(UserAction.new_wallet_address.state)
+
+
+async def new_wallet_address_entered(message: types.Message, state: FSMContext):
+    wallet_id = message.text
+    if not wallet_valid(wallet_id):
+        await message.answer("Please send me correct wallet.")
+        return
+    updated = update_user(user_id=message.from_user.id, wallet_id=wallet_id)
+    msg_text = 'You wallet is updated'
+    if not updated:
+        msg_text = 'Something went wrong'
+    kb = await add_menu_button()
+    await message.answer(msg_text, parse_mode='HTML', reply_markup=kb)
+    await state.finish()
 
 
 async def create_withdrawal(message: types.Message, state: FSMContext):
     withdrawal_amount = message.text.lower()
+    if not amount_valid(withdrawal_amount):
+        kb = await add_menu_button()
+        await message.answer("Please send me correct withdrawal amount.", reply_markup=kb)
+        return
+
     created = send_withdrawal_request(message.from_user.id, withdrawal_amount)
     msg_text = 'You withdrawal is created'
     if not created:
@@ -143,6 +174,11 @@ async def send_proof(message: types.Message, state: FSMContext):
             text_proof=message.text
         )
     else:
+        if len(message.photo) == 0:
+            kb = await add_menu_button()
+            await message.answer("Please send me some image.", reply_markup=kb)
+            return
+
         data = BytesIO()
         raw = await message.photo[0].download(destination=data)
         proof_created = send_proof_request(
@@ -150,9 +186,9 @@ async def send_proof(message: types.Message, state: FSMContext):
             task_id=task_id,
             image_proof=data
         )
-    msg_text = 'You proof is accepted'
+    msg_text = task.get('success_text') if task.get('need_validation') else 'Your proof is accepted'
     if not proof_created:
-        msg_text = 'Something went wrong'
+        msg_text = task.get('fail_text')
     kb = await add_menu_button()
     await message.answer(msg_text, parse_mode='HTML', reply_markup=kb)
     await state.finish()
@@ -166,6 +202,7 @@ def register_handlers_user(dp: Dispatcher):
     dp.register_message_handler(discord_username_entered, state=UserAction.waiting_discord)
 
     dp.register_message_handler(select_action, state=UserAction.user_start)
+    dp.register_message_handler(new_wallet_address_entered, state=UserAction.new_wallet_address)
     dp.register_message_handler(create_withdrawal, state=UserAction.withdrawal_create)
     dp.register_message_handler(select_task, state=UserAction.get_user_tasks)
     dp.register_message_handler(

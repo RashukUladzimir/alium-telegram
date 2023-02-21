@@ -1,5 +1,6 @@
-GET_USER_TASKS = 'get_user_tasks'
-WITHDRAWAL = 'withdrawal'
+GET_USER_TASKS = 'Pick next task'
+WITHDRAWAL = 'Withdraw'
+CHANGE_WALLET_ADDRESS = 'Change Wallet address'
 
 WELCOME_MESSAGE = '''
 Our Referral program is back - complete simple tasks, send proofs, invite friends and receive rewards: 
@@ -18,4 +19,11 @@ Let me know your wallet address where you’d like to receive your rewards and w
 
 DISCORD_MESSAGE = '''
 Alright, now provide me your Discord account👾 which is connected to Alium Discord server (“https://discord.gg/XpjHmmrn74")
+'''
+
+MAIN_MENU_MESSAGE = '''
+👋 Hello, {}
+💰 Your current Balance: {} 
+📢 Your referrals counter: {}
+📝 Your referral link: {}
 '''

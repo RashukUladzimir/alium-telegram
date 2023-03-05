@@ -24,6 +24,7 @@ Alright, now provide me your Discord account👾 which is connected to Alium Dis
 MAIN_MENU_MESSAGE = '''
 👋 Hello, {}
 💰 Your current Balance: {} 
+💰 Your current Withdrawal Balance: {} 
 📢 Your referrals counter: {}
 📝 Your referral link: {}
 '''

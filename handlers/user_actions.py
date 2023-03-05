@@ -1,4 +1,5 @@
 from io import BytesIO
+from decimal import Decimal
 
 from aiogram import Dispatcher, types
 from aiogram.types.message import ContentType
@@ -11,7 +12,7 @@ from handlers.consts import GET_USER_TASKS, WITHDRAWAL, WELCOME_MESSAGE, WALLET_
     MAIN_MENU_MESSAGE, CHANGE_WALLET_ADDRESS
 from handlers.api import get_user, get_tasks, register_task, send_proof_request, send_withdrawal_request, update_user
 
-from handlers.helpers import remove_p_tag, wallet_valid, discord_valid, amount_valid
+from handlers.helpers import wallet_valid, discord_valid, amount_valid, remove_tags
 
 
 async def add_menu_button():
@@ -62,6 +63,7 @@ async def user_start(message: types.Message, state: FSMContext):
         await message.answer(
             MAIN_MENU_MESSAGE.format(
                 message.from_user.first_name,
+                Decimal(user.get('unverified_balance')) + Decimal(user.get('balance')),
                 user.get('balance'),
                 user.get('referrals'),
                 await get_start_link(message.from_user.id, encode=True)
@@ -154,9 +156,10 @@ async def select_task(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
     for task in user_data.get('tasks'):
         if str(task['name']) == task_name:
-            task_desc = remove_p_tag(task['description'])
+            task_desc = remove_tags(task['description'])
             register_task(message.from_user.id, task['id'])
-            await message.answer(task_desc, parse_mode='HTML')
+
+            await message.answer(task_desc, parse_mode='html')
             await state.update_data(user_task=task)
             await state.set_state(UserAction.select_task.state)
 

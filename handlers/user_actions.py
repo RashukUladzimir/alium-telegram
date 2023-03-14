@@ -189,7 +189,7 @@ async def send_proof(message: types.Message, state: FSMContext):
             task_id=task_id,
             image_proof=data
         )
-    msg_text = task.get('success_text') if task.get('need_validation') else 'Your proof is accepted'
+    msg_text = task.get('success_text') if (task.get('need_validation') or task.get('need_trx_proof')) else 'Your proof is accepted'
     if not proof_created:
         msg_text = task.get('fail_text')
     kb = await add_menu_button()

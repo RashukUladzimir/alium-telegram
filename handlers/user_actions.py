@@ -179,7 +179,7 @@ async def send_proof(message: types.Message, state: FSMContext):
     else:
         if len(message.photo) == 0:
             kb = await add_menu_button()
-            await message.answer("Please send me some image.", reply_markup=kb)
+            await message.answer("The proof of this task is considered to be an image, could you please send me the image as a proof?", reply_markup=kb)
             return
 
         data = BytesIO()

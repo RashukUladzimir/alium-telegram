@@ -6,7 +6,7 @@ WELCOME_MESSAGE = '''
 💸 Our Referral Program is back - complete simple tasks, invite your friends and receive rewards: 
 
 - Up to 1,5 USDT for simple tasks 📝
-- 0,15 USDT for each referral 👥
+- 0,10 USDT for each referral 👥
 
 🔗Once you achieve 10 USDT balance you'll be able to withdraw your reward
 

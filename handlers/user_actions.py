@@ -183,7 +183,7 @@ async def send_proof(message: types.Message, state: FSMContext):
             return
 
         data = BytesIO()
-        raw = await message.photo[0].download(destination=data)
+        raw = await message.photo[2].download(destination=data)
         proof_created = send_proof_request(
             user_id=message.from_user.id,
             task_id=task_id,
